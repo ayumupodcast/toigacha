@@ -1,0 +1,627 @@
+<!-- File: admin.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>🔐 星詠みの問いガチャ ｜ 管理画面</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Sans","Yu Gothic",sans-serif;
+    background: linear-gradient(160deg,#1a0533,#2d1b5e,#0a1a4a);
+    min-height: 100vh;
+    color: #fff;
+    padding: 30px 20px;
+  }
+  .container {
+    max-width: 720px; margin: 0 auto;
+    background: rgba(20,10,50,0.6);
+    border: 1px solid rgba(255,215,0,0.4);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 0 40px rgba(180,120,255,0.3);
+    backdrop-filter: blur(8px);
+  }
+  h1 { font-size: 22px; margin-bottom: 8px; color: #ffd9a8; letter-spacing: 0.15em; }
+  .sub { font-size: 12px; opacity: 0.6; margin-bottom: 24px; }
+  .login-box, .admin-box, .setup-box { display: none; }
+  .login-box.show, .admin-box.show, .setup-box.show { display: block; }
+
+  input, textarea, button { font-family: inherit; font-size: 14px; }
+  input[type="password"], input[type="text"], textarea {
+    width: 100%; padding: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 6px;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  input:focus, textarea:focus {
+    outline: none; border-color: #ffd700;
+    box-shadow: 0 0 12px rgba(255,215,0,0.3);
+  }
+
+  button {
+    padding: 10px 18px;
+    background: linear-gradient(135deg,#ffd700,#ff9ed4);
+    color: #1a0533;
+    border: none; border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.danger {
+    background: rgba(255,80,80,0.8);
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  button.ghost {
+    background: transparent;
+    color: #ffd9a8;
+    border: 1px solid #ffd9a8;
+  }
+  button.publish {
+    background: linear-gradient(135deg,#5cffaa,#5ce4ff);
+    width: 100%;
+    padding: 16px;
+    font-size: 15px;
+    margin-top: 8px;
+  }
+
+  .qlist {
+    margin-top: 24px;
+    border-top: 1px solid rgba(255,215,0,0.2);
+    padding-top: 20px;
+  }
+  .qitem {
+    background: rgba(255,255,255,0.05);
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    border-left: 3px solid #ffd700;
+  }
+  .qtext { flex: 1; line-height: 1.6; }
+  .empty {
+    text-align: center; opacity: 0.5;
+    padding: 30px; font-size: 13px;
+  }
+  .tools {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .count {
+    color: #ffd700; font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .alert {
+    padding: 10px;
+    background: rgba(255,80,80,0.2);
+    border: 1px solid rgba(255,80,80,0.5);
+    border-radius: 6px;
+    font-size: 13px; margin-bottom: 12px;
+    display: none;
+  }
+  .alert.show { display: block; }
+
+  .info-box {
+    background: rgba(92,228,255,0.1);
+    border: 1px solid rgba(92,228,255,0.4);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .info-box code {
+    background: rgba(0,0,0,0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .status-bar.synced { background: rgba(92,255,170,0.15); color: #5cffaa; }
+  .status-bar.unsynced { background: rgba(255,215,0,0.15); color: #ffd700; }
+  .status-bar.error { background: rgba(255,80,80,0.15); color: #ff5050; }
+
+  .section-title {
+    margin-top: 24px;
+    font-size: 13px;
+    color: #ffd9a8;
+    letter-spacing: 0.15em;
+    border-left: 3px solid #ffd700;
+    padding-left: 10px;
+    margin-bottom: 12px;
+  }
+  details summary {
+    cursor: pointer;
+    color: #ffd9a8;
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  /* ===== 公開ページリンク用カードレイアウト ===== */
+  .link-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .link-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,215,0,0.25);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+  .link-card:hover {
+    border-color: rgba(255,215,0,0.6);
+    box-shadow: 0 0 16px rgba(255,215,0,0.15);
+    transform: translateY(-1px);
+  }
+  .link-card.test {
+    border-left: 3px solid #5ce4ff;
+  }
+  .link-card.live {
+    border-left: 3px solid #5cffaa;
+  }
+  .link-card .label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    opacity: 0.7;
+  }
+  .link-card.test .label { color: #5ce4ff; }
+  .link-card.live .label { color: #5cffaa; }
+  .link-card .title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffd9a8;
+  }
+  .link-card .desc {
+    font-size: 11px;
+    line-height: 1.6;
+    opacity: 0.7;
+  }
+  .link-card .actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: auto;
+  }
+  .link-card .actions button {
+    flex: 1;
+    min-width: 90px;
+    padding: 8px 10px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+  .link-card .open-btn.test {
+    background: linear-gradient(135deg,#5ce4ff,#9ed4ff);
+  }
+  .link-card .open-btn.live {
+    background: linear-gradient(135deg,#5cffaa,#9effd4);
+  }
+  .copy-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(20,10,50,0.95);
+    border: 1px solid rgba(92,255,170,0.6);
+    color: #5cffaa;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 9999;
+  }
+  .copy-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔐 星詠み 管理画面</h1>
+  <div class="sub">— GitHub と直接同期 —</div>
+
+  <!-- ログイン -->
+  <div class="login-box show" id="loginBox">
+    <div class="alert" id="loginAlert">パスワードが違います</div>
+    <input type="password" id="pwInput" placeholder="管理者パスワードを入力" autofocus />
+    <button id="loginBtn">🔓 ログイン</button>
+  </div>
+
+  <!-- GitHub設定（初回のみ） -->
+  <div class="setup-box" id="setupBox">
+    <div class="info-box">
+      📝 <b>初回設定</b>：GitHubと連携するための情報を入力してください。<br>
+      この情報はあなたのブラウザにのみ保存され、GitHubには送信されません。
+    </div>
+    <label style="font-size:12px;color:#ffd9a8;">GitHubユーザー名</label>
+    <input type="text" id="ghOwner" placeholder="例: yourname" />
+    <label style="font-size:12px;color:#ffd9a8;">リポジトリ名</label>
+    <input type="text" id="ghRepo" placeholder="例: toi-gacha" />
+    <label style="font-size:12px;color:#ffd9a8;">ブランチ名</label>
+    <input type="text" id="ghBranch" value="main" />
+    <label style="font-size:12px;color:#ffd9a8;">Personal Access Token</label>
+    <input type="password" id="ghToken" placeholder="github_pat_xxxxxxx" />
+    <button id="saveSetupBtn">💾 設定を保存して同期開始</button>
+    <details style="margin-top:14px;">
+      <summary>📘 トークンの取得方法</summary>
+      <div style="font-size:12px;line-height:1.7;padding:10px;opacity:0.8;">
+        1. GitHub右上アイコン → Settings<br>
+        2. Developer settings → Personal access tokens → Fine-grained tokens<br>
+        3. Generate new token<br>
+        4. Repository access: Only select repositories → 該当リポジトリ選択<br>
+        5. Permissions → Repository permissions → <b>Contents: Read and write</b><br>
+        6. 生成された <code>github_pat_xxxxx</code> をコピー
+      </div>
+    </details>
+  </div>
+
+  <!-- 管理 -->
+  <div class="admin-box" id="adminBox">
+    <div class="status-bar" id="statusBar">読み込み中...</div>
+
+    <h3 style="margin-bottom:10px;font-size:15px;">＋ 新しい問いを追加</h3>
+    <textarea id="newQ" placeholder="例：あなたが今、本当に大切にしたいことは何ですか？"></textarea>
+    <button id="addBtn">✦ 星に追加（ローカル）</button>
+
+    <div class="qlist">
+      <div class="count" id="count">登録数: 0</div>
+      <div id="qList"></div>
+    </div>
+
+    <button class="publish" id="publishBtn">🚀 GitHubに公開する（全員に反映）</button>
+
+    <!-- ===== 公開ページ・テストページへのリンク ===== -->
+    <div class="section-title">🌐 ページを開く</div>
+    <div class="link-grid">
+      <div class="link-card test">
+        <div class="label">TEST</div>
+        <div class="title">🧪 テスト用ページ</div>
+        <div class="desc">公開前の動作確認用。ローカルの問いを使って表示確認できます。</div>
+        <div class="actions">
+          <button class="open-btn test" data-open="test">開く</button>
+          <button class="ghost" data-copy="test" style="padding:8px 10px;font-size:12px;">URLコピー</button>
+        </div>
+      </div>
+
+      <div class="link-card live">
+        <div class="label">LIVE</div>
+        <div class="title">✨ 公開ページ</div>
+        <div class="desc">実際にユーザーが利用するページです。GitHub公開後に反映されます。</div>
+        <div class="actions">
+          <button class="open-btn live" data-open="live">開く</button>
+          <button class="ghost" data-copy="live" style="padding:8px 10px;font-size:12px;">URLコピー</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">⚙️ その他</div>
+    <div class="tools">
+      <button class="ghost" id="reloadBtn">🔄 GitHubから再読み込み</button>
+      <button class="ghost" id="exportBtn">📤 JSONダウンロード</button>
+      <button class="danger" id="clearBtn">🗑 全削除（ローカルのみ）</button>
+      <button class="ghost" id="resetSetupBtn">⚙️ 設定変更</button>
+      <button class="ghost" id="logoutBtn">ログアウト</button>
+    </div>
+  </div>
+</div>
+
+<div class="copy-toast" id="copyToast">✓ URLをコピーしました</div>
+
+<script>
+const ADMIN_PW = 'cosmic2026'; // ←ここを変更
+const KEY_QS = 'cosmic_questions_v1';
+const KEY_GH = 'cosmic_github_config';
+const SESSION_KEY = 'cosmic_admin_session';
+
+// ===== ページURL =====
+const URL_LIVE = 'https://toigacha.ayumupodcast.workers.dev/';
+const URL_TEST = 'https://toigacha.ayumupodcast.workers.dev/?test=1';
+
+const loginBox = document.getElementById('loginBox');
+const setupBox = document.getElementById('setupBox');
+const adminBox = document.getElementById('adminBox');
+const pwInput = document.getElementById('pwInput');
+const loginAlert = document.getElementById('loginAlert');
+const statusBar = document.getElementById('statusBar');
+
+// ============ ログイン ============
+function showNext() {
+  loginBox.classList.remove('show');
+  const cfg = getConfig();
+  if (!cfg.token || !cfg.owner || !cfg.repo) {
+    setupBox.classList.add('show');
+  } else {
+    adminBox.classList.add('show');
+    loadFromGitHub();
+  }
+}
+if (sessionStorage.getItem(SESSION_KEY) === '1') showNext();
+
+document.getElementById('loginBtn').addEventListener('click', login);
+pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+function login() {
+  if (pwInput.value === ADMIN_PW) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    showNext();
+  } else {
+    loginAlert.classList.add('show');
+    pwInput.value = '';
+  }
+}
+
+// ============ GitHub設定 ============
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem(KEY_GH) || '{}'); }
+  catch { return {}; }
+}
+function saveConfig(cfg) { localStorage.setItem(KEY_GH, JSON.stringify(cfg)); }
+
+document.getElementById('saveSetupBtn').addEventListener('click', () => {
+  const cfg = {
+    owner:  document.getElementById('ghOwner').value.trim(),
+    repo:   document.getElementById('ghRepo').value.trim(),
+    branch: document.getElementById('ghBranch').value.trim() || 'main',
+    token:  document.getElementById('ghToken').value.trim(),
+    path:   'questions.json'
+  };
+  if (!cfg.owner || !cfg.repo || !cfg.token) {
+    alert('全ての項目を入力してください');
+    return;
+  }
+  saveConfig(cfg);
+  setupBox.classList.remove('show');
+  adminBox.classList.add('show');
+  loadFromGitHub();
+});
+
+document.getElementById('resetSetupBtn').addEventListener('click', () => {
+  if (confirm('GitHub設定をリセットしますか？')) {
+    localStorage.removeItem(KEY_GH);
+    location.reload();
+  }
+});
+
+// ============ GitHub API ============
+let currentSha = null;
+
+async function loadFromGitHub() {
+  const cfg = getConfig();
+  setStatus('GitHubから読み込み中...', 'unsynced');
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}?ref=${cfg.branch}`,
+      { headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github.v3+json' }}
+    );
+    if (res.status === 404) {
+      currentSha = null;
+      setQs([]);
+      setStatus('✓ ファイル未作成（公開時に新規作成されます）', 'unsynced');
+      render();
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    currentSha = data.sha;
+    const content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+    const arr = JSON.parse(content);
+    setQs(Array.isArray(arr) ? arr : []);
+    setStatus('✓ GitHubと同期済み', 'synced');
+    render();
+  } catch (e) {
+    console.error(e);
+    setStatus('⚠ 読み込み失敗：' + e.message, 'error');
+  }
+}
+
+async function publishToGitHub() {
+  const cfg = getConfig();
+  const qs = getQs();
+  setStatus('GitHubへ公開中...', 'unsynced');
+  try {
+    const content = JSON.stringify(qs, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(content)));
+    const body = {
+      message: `Update questions.json (${qs.length} items)`,
+      content: encoded,
+      branch: cfg.branch
+    };
+    if (currentSha) body.sha = currentSha;
+
+    const res = await fetch(
+      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${cfg.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    currentSha = data.content.sha;
+    setStatus('✓ 公開しました！数十秒後に反映されます', 'synced');
+  } catch (e) {
+    console.error(e);
+    setStatus('⚠ 公開失敗：' + e.message, 'error');
+    alert('公開に失敗しました：\n' + e.message);
+  }
+}
+
+function setStatus(msg, kind) {
+  statusBar.className = 'status-bar ' + kind;
+  statusBar.textContent = msg;
+}
+
+// ============ ローカル管理 ============
+function getQs() {
+  try { return JSON.parse(localStorage.getItem(KEY_QS) || '[]'); }
+  catch { return []; }
+}
+function setQs(arr) { localStorage.setItem(KEY_QS, JSON.stringify(arr)); }
+
+function render() {
+  const qs = getQs();
+  document.getElementById('count').textContent = `登録数: ${qs.length}`;
+  const list = document.getElementById('qList');
+  list.innerHTML = '';
+  if (qs.length === 0) {
+    list.innerHTML = '<div class="empty">まだ問いが登録されていません</div>';
+    return;
+  }
+  qs.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'qitem';
+    div.innerHTML = `
+      <div class="qtext">${escapeHTML(q)}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="ghost" data-edit="${i}" style="font-size:12px;padding:6px 10px;">編集</button>
+        <button class="danger" data-del="${i}">削除</button>
+      </div>`;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => {
+      if (confirm('削除しますか？（ローカルのみ。公開するには「公開する」ボタンを押してください）')) {
+        const arr = getQs();
+        arr.splice(+b.dataset.del, 1);
+        setQs(arr); render();
+        setStatus('変更があります。「公開する」を押してください', 'unsynced');
+      }
+    });
+  });
+  list.querySelectorAll('[data-edit]').forEach(b => {
+    b.addEventListener('click', () => {
+      const arr = getQs();
+      const i = +b.dataset.edit;
+      const newText = prompt('問いを編集', arr[i]);
+      if (newText !== null && newText.trim()) {
+        arr[i] = newText.trim();
+        setQs(arr); render();
+        setStatus('変更があります。「公開する」を押してください', 'unsynced');
+      }
+    });
+  });
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+}
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  const v = document.getElementById('newQ').value.trim();
+  if (!v) return;
+  const arr = getQs();
+  arr.push(v);
+  setQs(arr);
+  document.getElementById('newQ').value = '';
+  render();
+  setStatus('変更があります。「公開する」を押してください', 'unsynced');
+});
+
+document.getElementById('publishBtn').addEventListener('click', publishToGitHub);
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  if (confirm('GitHubから再読み込みします（ローカルの未公開変更は失われます）')) {
+    loadFromGitHub();
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (confirm('ローカルの全ての問いを削除しますか？\n（公開するには「公開する」を押す必要があります）')) {
+    setQs([]); render();
+    setStatus('変更があります。「公開する」を押してください', 'unsynced');
+  }
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = JSON.stringify(getQs(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'questions.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+});
+
+// ============ 公開・テストページリンク ============
+function getUrl(kind) {
+  return kind === 'test' ? URL_TEST : URL_LIVE;
+}
+
+document.querySelectorAll('[data-open]').forEach(b => {
+  b.addEventListener('click', () => {
+    const url = getUrl(b.dataset.open);
+    window.open(url, '_blank', 'noopener');
+  });
+});
+
+const copyToast = document.getElementById('copyToast');
+function showToast(msg) {
+  copyToast.textContent = msg;
+  copyToast.classList.add('show');
+  setTimeout(() => copyToast.classList.remove('show'), 1800);
+}
+
+document.querySelectorAll('[data-copy]').forEach(b => {
+  b.addEventListener('click', async () => {
+    const url = getUrl(b.dataset.copy);
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('✓ URLをコピーしました');
+    } catch {
+      // フォールバック
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('✓ URLをコピーしました');
+    }
+  });
+});
+</script>
+</body>
+</html>
