@@ -958,7 +958,23 @@ function initState() {
 function saveState(s) { localStorage.setItem(KEY_STATE, JSON.stringify(s)); }
 let state = loadState();
 
+/* ========== 問いデータ取得（GitHubのJSONから） ========== */
+let cachedQs = [];
+async function loadQs() {
+  try {
+    const res = await fetch('questions.json?t=' + Date.now());
+    if (res.ok) cachedQs = await res.json();
+  } catch (e) {
+    console.warn('問い読み込み失敗:', e);
+    cachedQs = [];
+  }
+}
 function getQs() {
+  return cachedQs;
+}
+
+// ページ起動時に読み込み
+loadQs().then(() => updateHUD());
   try { return JSON.parse(localStorage.getItem(KEY_QS) || '[]'); }
   catch { return []; }
 }
